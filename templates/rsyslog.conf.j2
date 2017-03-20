@@ -12,61 +12,95 @@
 #### MODULES ####
 #################
 
-{% if ansible_distribution_release == "xenial" %}
-module(load="imuxsock") # provides support for local system logging
-module(load="imklog")   # provides kernel logging support
-#module(load="immark")  # provides --MARK-- message capability
-{% else %}
-$ModLoad imuxsock # provides support for local system logging
-$ModLoad imklog   # provides kernel logging support
-#$ModLoad immark  # provides --MARK-- message capability
+{% if ansible_distribution_release == "xenial" or (ansible_os_family == "RedHat" and ansible_lsb.major_release|int >= 7) %}
+{% for module in rsyslog_modules %}
+module(load="{{ module.type }}") # {{ module.comment|default('') }}
+{% endfor %}
+
+{% if rsyslog_input_udp is defined %}
+# UDP input
+module(load="{{ rsyslog_input_udp.type|default('imudp') }}")
+input(type="{{ rsyslog_input_udp.type|default('imudp') }}" address="{{ rsyslog_input_udp.address }}" port="{{ rsyslog_input_udp.port|default(514) }}")
 {% endif %}
 
-# provides UDP syslog reception
-{% if ansible_distribution_release == "xenial" %}
-{% if rsyslog_udp_enable %}
-module(load="imudp")
-input(type="imudp" address="{{ rsyslog_udp_address }}" port="{{ rsyslog_udp_port }}")
+{% if rsyslog_input_tcp is defined %}
+# TCP input
+{% if rsyslog_server_tls is defined %}
+global(
+  defaultNetstreamDriver="ptcp" 
+  #TCP TLS
+  defaultNetstreamDriverCAFile={{ rsyslog_server_tls.cafile|quote }}
+  defaultNetstreamDriverCertFile={{ rsyslog_server_tls.certfile|quote }}
+  defaultNetstreamDriverKeyFile={{ rsyslog_server_tls.keyfile|quote }}
+)
+module(
+  load="{{ rsyslog_input_tcp.type|default('imtcp') }}"
+  streamDriver.name="gtls"
+  streamDriver.mode="{{ rsyslog_server_tls.drivermode|default(1) }}"
+  streamDriver.authMode="{{ rsyslog_server_tls.authmode|default('anon') }}"
+)
 {% else %}
-#module(load="imudp")
-#input(type="imudp" port="{{ rsyslog_udp_port }}")
+module(load="{{ rsyslog_input_tcp.type|default('imtcp') }}")
 {% endif %}
-{% else %}
-{% if rsyslog_udp_enable %}
-$ModLoad imudp
-$UDPServerAddress {{ rsyslog_udp_address }}
-$UDPServerRun {{ rsyslog_udp_port }}
-{% else %}
-#$ModLoad imudp
-#$UDPServerAddress {{ rsyslog_udp_address }}
-#$UDPServerRun {{ rsyslog_udp_port }}
-{% endif %}
-{% endif %}
-
-
-# provides TCP syslog reception
-{% if ansible_distribution_release == "xenial" %}
-{% if rsyslog_tcp_enable %}
-module(load="imtcp")
-input(type="imtcp" address="{{ rsyslog_tcp_address }}" port="{{ rsyslog_tcp_port }}")
-{% else %}
-#module(load="imtcp")
-#input(type="imtcp" port="{{ rsyslog_tcp_port }}")
-{% endif %}
-{% else %}
-{% if rsyslog_tcp_enable %}
-$ModLoad imtcp
-$InputTCPServerAddress {{ rsyslog_tcp_address }}
-$InputTCPServerRun {{ rsyslog_tcp_port }}
-{% else %}
-#$ModLoad imtcp
-#$InputTCPServerRun {{ rsyslog_tcp_port }}
-{% endif %}
+input(type="{{ rsyslog_input_tcp.type|default('imtcp') }}" address="{{ rsyslog_input_tcp.address }}" port="{{ rsyslog_input_tcp.port|default(514) }}")
 {% endif %}
 
+{% if rsyslog_client_tls is defined %}
+$DefaultNetstreamDriverCAFile {{ rsyslog_client_tls.cafile|quote }}
+{% endif %}
+
+{% else %}
+{% for module in rsyslog_modules %}
+$ModLoad {{ module.type }} # {{ module.comment|default('') }}
+{% endfor %}
+
+{% if rsyslog_input_udp is defined %}
+# UDP input
+$ModLoad {{ rsyslog_input_udp.type|default('imudp') }}
+$UDPServerAddress {{ rsyslog_input_udp.address }}
+$UDPServerRun {{ rsyslog_input_udp.port|default(514) }}
+{% endif %}
+
+{% if rsyslog_input_tcp is defined %}
+# TCP input
+{% if rsyslog_server_tls is defined %}
+$DefaultNetstreamDriver gtls
+$DefaultNetstreamDriverCAFile {{ rsyslog_server_tls.cafile|quote }}
+$DefaultNetstreamDriverCertFile {{ rsyslog_server_tls.certfile|quote }}
+$DefaultNetstreamDriverKeyFile {{ rsyslog_server_tls.keyfile|quote }}
+{% endif %}
+$ModLoad {{ rsyslog_input_tcp.type|default('imtcp') }}
+$InputTCPServerAddress {{ rsyslog_input_tcp.address }}
+{% if rsyslog_server_tls is defined %}
+$InputTCPServerStreamDriverMode {{ rsyslog_server_tls.drivermode|default(1) }}
+$InputTCPServerStreamDriverAuthMode {{ rsyslog_server_tls.authmode|default('anon') }}
+{% endif %}
+$InputTCPServerRun {{ rsyslog_input_tcp.port|default(514) }}
+{% endif %}
+
+{% if rsyslog_client_tls is defined %}
+$DefaultNetstreamDriverCAFile {{ rsyslog_client_tls.cafile|quote }}
+$DefaultNetstreamDriver gtls
+$InputTCPServerStreamDriverMode {{ rsyslog_client_tls.drivermode|default(1) }}
+$InputTCPServerStreamDriverAuthMode {{ rsyslog_client_tls.authmode|default('anon') }}
+{% endif %}
+{% endif %}
 
 # Enable non-kernel facility klog messages
 $KLogPermitNonKernelFacility {{ rsyslog_klog_permit_non_kernel_facility }}
+
+###########################
+#### TEMPLATES
+###########################
+{% for template in rsyslog_templates -%}
+{% if ansible_distribution_release == "xenial" or (ansible_os_family == "RedHat" and ansible_lsb.major_release|int >= 7) %}
+template (name={{ template.name|quote }} type={{ template.type|default('string')|quote}} 
+    string={{ template.string|quote }}
+)
+{% else %}
+$template {{ template.name }},{{ template.string|quote }}
+{% endif %}
+{%- endfor %}
 
 ###########################
 #### GLOBAL DIRECTIVES ####
@@ -76,7 +110,15 @@ $KLogPermitNonKernelFacility {{ rsyslog_klog_permit_non_kernel_facility }}
 # Use traditional timestamp format.
 # To enable high precision timestamps, comment out the following line.
 #
-$ActionFileDefaultTemplate {{ rsyslog_action_file_default_template }}
+$ActionFileDefaultTemplate {{ rsyslog_action.file_default_template }}
+
+{% if rsyslog_action.queue_filename is defined %}
+$ActionQueueFileName {{ rsyslog_action.queue_filename }}     # unique name prefix for spool files
+{% endif %}
+$ActionQueueMaxDiskSpace  {{ rsyslog_action.queue_maxdiskspace|default('100mb') }}     # 1gb space limit (use as much as possible)
+$ActionQueueSaveOnShutdown {{ rsyslog_action.queue_saveonshutdown|default('on') }}     # save messages to disk on shutdown
+$ActionQueueType {{ rsyslog_action.queue_type|default('LinkedList') }}       # run asynchronously
+$ActionResumeRetryCount {{ rsyslog_action.resume_retrycount|default(-1) }}        # infinite retries if host is down
 
 # Filter duplicated messages
 $RepeatedMsgReduction {{ rsyslog_repeated_msg_reduction }}
@@ -101,3 +143,10 @@ $WorkDirectory {{ rsyslog_work_directory }}
 # Include all config files in /etc/rsyslog.d/
 #
 $IncludeConfig {{ rsyslog_include_config }}
+
+# Turn off message reception via local log socket;
+# local messages are retrieved through imjournal now.
+$OmitLocalLogging on
+
+# File to store the position in the journal
+$IMJournalStateFile imjournal.state

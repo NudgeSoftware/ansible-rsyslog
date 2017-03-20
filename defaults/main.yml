@@ -2,11 +2,58 @@
 # defaults file for rsyslog
 
 rsyslog_repeated_msg_reduction: "on"
-rsyslog_action_file_default_template: RSYSLOG_TraditionalFileFormat
 rsyslog_klog_permit_non_kernel_facility: "on"
-rsyslog_udp_enable: false
-rsyslog_udp_address: 127.0.0.1
-rsyslog_udp_port: 514
-rsyslog_tcp_enable: false
-rsyslog_tcp_port: 514
+
+rsyslog_action:
+  file_default_template: RSYSLOG_TraditionalFileFormat
+  queue_maxdiskspace: 1g
+  queue_saveonshutdown: "on"
+  queue_type: LinkedList
+  resume_retrycount: -1
+  queue_filename: fwdRule1
+
+# rsyslog_input_udp:
+#   type: imudp
+#   address: 127.0.0.1
+#   port: 514
+
+# rsyslog_input_tcp:
+#   type: imtcp
+#   address: 127.0.0.1
+#   port: 514
+#   maxSessions: 500
+
+# rsyslog_server_tls:
+#   cafile: path/to/ca.pem
+#   certfile: path/to/cert.pem
+#   keyfile: path/to/key.pk
+#   drivermode: 1
+#   authmode: anon
+
+# rsyslog_client_tls:
+#   cafile: path/to/ca.pem 
+#   tlsmode: 1
+#   authmode: anon
+  
+rsyslog_modules:
+  - type: imuxsock
+    comment: provides support for local system logging (e.g. via logger command)
+  - type: imjournal
+    comment: provides access to the systemd journal
+  - type: imklog
+    comment: provides kernel logging support
+  - type: omfwd
+  - type: omfile
+  # - type: mmnormalize
+
 rsyslog_apps: []
+
+rsyslog_templates:
+  - name: RFC3164fmt
+    type: string
+    string: "<%PRI%>%TIMESTAMP% %HOSTNAME% %syslogtag%%msg%"
+  - name: usermsg
+    type: string
+    string: " XXXX%syslogtag%%msg%\n\r"
+
+# rsyslog_default_template: RFC3164fmt
