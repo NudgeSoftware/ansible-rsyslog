@@ -42,8 +42,8 @@ rsyslog_modules:
     comment: provides access to the systemd journal
   - type: imklog
     comment: provides kernel logging support
-  - type: omfwd
-  - type: omfile
+  #- type: omfwd
+  #- type: omfile
   # - type: mmnormalize
 
 rsyslog_apps: []

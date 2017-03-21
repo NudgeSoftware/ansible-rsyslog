@@ -12,7 +12,7 @@
 #### MODULES ####
 #################
 
-{% if ansible_distribution_release == "xenial" or (ansible_os_family == "RedHat" and ansible_lsb.major_release|int >= 7) %}
+{% if ansible_distribution_release == "xenial" or (ansible_os_family == "RedHat" and ansible_distribution_version|int >= 7) %}
 {% for module in rsyslog_modules %}
 module(load="{{ module.type }}") # {{ module.comment|default('') }}
 {% endfor %}
@@ -20,7 +20,7 @@ module(load="{{ module.type }}") # {{ module.comment|default('') }}
 {% if rsyslog_input_udp is defined %}
 # UDP input
 module(load="{{ rsyslog_input_udp.type|default('imudp') }}")
-input(type="{{ rsyslog_input_udp.type|default('imudp') }}" address="{{ rsyslog_input_udp.address }}" port="{{ rsyslog_input_udp.port|default(514) }}")
+input(type="{{ rsyslog_input_udp.type|default('imudp') }}" address="{{ rsyslog_input_udp.address|default('*') }}" port="{{ rsyslog_input_udp.port|default(514) }}")
 {% endif %}
 
 {% if rsyslog_input_tcp is defined %}
@@ -42,7 +42,7 @@ module(
 {% else %}
 module(load="{{ rsyslog_input_tcp.type|default('imtcp') }}")
 {% endif %}
-input(type="{{ rsyslog_input_tcp.type|default('imtcp') }}" address="{{ rsyslog_input_tcp.address }}" port="{{ rsyslog_input_tcp.port|default(514) }}")
+input(type="{{ rsyslog_input_tcp.type|default('imtcp') }}" address="{{ rsyslog_input_tcp.address|default('*') }}" port="{{ rsyslog_input_tcp.port|default(514) }}")
 {% endif %}
 
 {% if rsyslog_client_tls is defined %}
@@ -57,7 +57,7 @@ $ModLoad {{ module.type }} # {{ module.comment|default('') }}
 {% if rsyslog_input_udp is defined %}
 # UDP input
 $ModLoad {{ rsyslog_input_udp.type|default('imudp') }}
-$UDPServerAddress {{ rsyslog_input_udp.address }}
+$UDPServerAddress {{ rsyslog_input_udp.address|default('*') }}
 $UDPServerRun {{ rsyslog_input_udp.port|default(514) }}
 {% endif %}
 
@@ -70,7 +70,7 @@ $DefaultNetstreamDriverCertFile {{ rsyslog_server_tls.certfile|quote }}
 $DefaultNetstreamDriverKeyFile {{ rsyslog_server_tls.keyfile|quote }}
 {% endif %}
 $ModLoad {{ rsyslog_input_tcp.type|default('imtcp') }}
-$InputTCPServerAddress {{ rsyslog_input_tcp.address }}
+$InputTCPServerAddress {{ rsyslog_input_tcp.address|default('*') }}
 {% if rsyslog_server_tls is defined %}
 $InputTCPServerStreamDriverMode {{ rsyslog_server_tls.drivermode|default(1) }}
 $InputTCPServerStreamDriverAuthMode {{ rsyslog_server_tls.authmode|default('anon') }}
@@ -93,12 +93,12 @@ $KLogPermitNonKernelFacility {{ rsyslog_klog_permit_non_kernel_facility }}
 #### TEMPLATES
 ###########################
 {% for template in rsyslog_templates -%}
-{% if ansible_distribution_release == "xenial" or (ansible_os_family == "RedHat" and ansible_lsb.major_release|int >= 7) %}
+{% if ansible_distribution_release == "xenial" or (ansible_os_family == "RedHat" and ansible_distribution_version|int >= 7) %}
 template (name={{ template.name|quote }} type={{ template.type|default('string')|quote}} 
     string={{ template.string|quote }}
 )
 {% else %}
-$template {{ template.name }},{{ template.string|quote }}
+$template {{ template.name }},"{{ template.string }}"
 {% endif %}
 {%- endfor %}
 
