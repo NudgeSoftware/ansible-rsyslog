@@ -56,4 +56,6 @@ rsyslog_templates:
     type: string
     string: " XXXX%syslogtag%%msg%\n\r"
 
+rsyslog_rulesets: ""
+
 # rsyslog_default_template: RFC3164fmt
