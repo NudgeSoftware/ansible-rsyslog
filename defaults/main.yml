@@ -52,9 +52,12 @@ rsyslog_templates:
   - name: RFC3164fmt
     type: string
     string: "<%PRI%>%TIMESTAMP% %HOSTNAME% %syslogtag%%msg%"
+  - name: wire
+    type: string
+    string: "%TIMESTAMP% %HOSTNAME% %syslogtag%%msg:::sp-if-no-1st-sp%%msg:::drop-last-lf%\\n"
   - name: usermsg
     type: string
-    string: " XXXX%syslogtag%%msg%\n\r"
+    string: " XXXX%syslogtag%%msg%\\n"
 
 rsyslog_rulesets: ""
 
