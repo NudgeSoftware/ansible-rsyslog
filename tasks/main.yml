@@ -40,6 +40,16 @@
   tags:
     - rsyslog
 
+- name: Ensure listen file is not present in rsyslog.d configuration directory
+  become: yes
+  file:
+    path: /etc/rsyslog.d/listen.conf
+    state: absent
+  notify:
+    - restart rsyslog
+  tags:
+    - rsyslog
+
 - name: Create rsyslog work directory
   become: yes
   file:

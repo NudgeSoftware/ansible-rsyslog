@@ -150,9 +150,5 @@ $WorkDirectory {{ rsyslog_work_directory }}
 #
 $IncludeConfig {{ rsyslog_include_config }}
 
-# Turn off message reception via local log socket;
-# local messages are retrieved through imjournal now.
-$OmitLocalLogging on
-
 # File to store the position in the journal
 $IMJournalStateFile imjournal.state
