@@ -7,95 +7,115 @@
 #
 #  Default logging rules can be found in /etc/rsyslog.d/50-default.conf
 
+{% set rainerscript = (ansible_distribution_release == "xenial" or (ansible_os_family == "RedHat" and ansible_distribution_version.split(".")[0]|int >= 7)) %}
 
 #################
 #### MODULES ####
 #################
 
-{% if ansible_distribution_release == "xenial" or (ansible_os_family == "RedHat" and ansible_distribution_version|int >= 7) %}
-{% for module in rsyslog_modules %}
+{% if rainerscript %}
+  {% for module in rsyslog_modules %}
 module(load="{{ module.type }}") # {{ module.comment|default('') }}
-{% endfor %}
+  {% endfor %}
+{% else %}
+  {% for module in rsyslog_modules %}
+$ModLoad {{ module.type }} # {{ module.comment|default('') }}
+  {% endfor %}
+# Enable non-kernel facility klog messages
+$KLogPermitNonKernelFacility {{ rsyslog_klog_permit_non_kernel_facility }}
+{% endif %}
 
 {% if rsyslog_input_udp is defined %}
 # UDP input
+  {% if rainerscript %}
 module(load="{{ rsyslog_input_udp.type|default('imudp') }}")
 input(type="{{ rsyslog_input_udp.type|default('imudp') }}" address="{{ rsyslog_input_udp.address|default('*') }}" port="{{ rsyslog_input_udp.port|default(514) }}")
+  {% else %}
+$ModLoad {{ rsyslog_input_udp.type|default('imudp') }}
+$UDPServerAddress {{ rsyslog_input_udp.address|default('*') }}
+$UDPServerRun {{ rsyslog_input_udp.port|default(514) }}
+  {% endif %}
 {% endif %}
 
-{% if rsyslog_input_tcp is defined %}
-# TCP input
 {% if rsyslog_server_tls is defined %}
+# TLS certs
+  {% if rainerscript %}
 global(
   defaultNetstreamDriver="ptcp" 
-  #TCP TLS
   defaultNetstreamDriverCAFile={{ rsyslog_server_tls.cafile|quote }}
   defaultNetstreamDriverCertFile={{ rsyslog_server_tls.certfile|quote }}
   defaultNetstreamDriverKeyFile={{ rsyslog_server_tls.keyfile|quote }}
 )
+  {% else %}
+$DefaultNetstreamDriver gtls
+$DefaultNetstreamDriverCAFile {{ rsyslog_server_tls.cafile|quote }}
+$DefaultNetstreamDriverCertFile {{ rsyslog_server_tls.certfile|quote }}
+$DefaultNetstreamDriverKeyFile {{ rsyslog_server_tls.keyfile|quote }}
+  {% endif %}
+{% endif %}
+
+{% if rsyslog_input_tcp is defined %}
+# TCP input
+  {% if rainerscript %}
+    {% if rsyslog_server_tls is defined %}
 module(
   load="{{ rsyslog_input_tcp.type|default('imtcp') }}"
   streamDriver.name="gtls"
   streamDriver.mode="{{ rsyslog_server_tls.drivermode|default(1) }}"
   streamDriver.authMode="{{ rsyslog_server_tls.authmode|default('anon') }}"
 )
-{% else %}
+    {% else %}
 module(load="{{ rsyslog_input_tcp.type|default('imtcp') }}")
-{% endif %}
+    {% endif %}
 input(type="{{ rsyslog_input_tcp.type|default('imtcp') }}" address="{{ rsyslog_input_tcp.address|default('*') }}" port="{{ rsyslog_input_tcp.port|default(514) }}")
-{% endif %}
-
-{% if rsyslog_client_tls is defined %}
-$DefaultNetstreamDriverCAFile {{ rsyslog_client_tls.cafile|quote }}
-{% endif %}
-
-{% else %}
-{% for module in rsyslog_modules %}
-$ModLoad {{ module.type }} # {{ module.comment|default('') }}
-{% endfor %}
-
-{% if rsyslog_input_udp is defined %}
-# UDP input
-$ModLoad {{ rsyslog_input_udp.type|default('imudp') }}
-$UDPServerAddress {{ rsyslog_input_udp.address|default('*') }}
-$UDPServerRun {{ rsyslog_input_udp.port|default(514) }}
-{% endif %}
-
-{% if rsyslog_input_tcp is defined %}
-# TCP input
-{% if rsyslog_server_tls is defined %}
-$DefaultNetstreamDriver gtls
-$DefaultNetstreamDriverCAFile {{ rsyslog_server_tls.cafile|quote }}
-$DefaultNetstreamDriverCertFile {{ rsyslog_server_tls.certfile|quote }}
-$DefaultNetstreamDriverKeyFile {{ rsyslog_server_tls.keyfile|quote }}
-{% endif %}
+  {% else %}
 $ModLoad {{ rsyslog_input_tcp.type|default('imtcp') }}
 $InputTCPServerAddress {{ rsyslog_input_tcp.address|default('*') }}
-{% if rsyslog_server_tls is defined %}
+    {% if rsyslog_server_tls is defined %}
 $InputTCPServerStreamDriverMode {{ rsyslog_server_tls.drivermode|default(1) }}
 $InputTCPServerStreamDriverAuthMode {{ rsyslog_server_tls.authmode|default('anon') }}
-{% endif %}
+    {% endif %}
 $InputTCPServerRun {{ rsyslog_input_tcp.port|default(514) }}
+  {% endif %}
+{% endif %}
+
+{% if rsyslog_input_relp is defined %}
+# RELP input
+  {% if rainerscript %}
+    {% if rsyslog_server_tls is defined %}
+module(
+  load="{{ rsyslog_input_relp.type|default('imrelp') }}"
+  streamDriver.name="gtls"
+  streamDriver.mode="{{ rsyslog_server_tls.drivermode|default(1) }}"
+  streamDriver.authMode="{{ rsyslog_server_tls.authmode|default('anon') }}"
+)
+    {% else %}
+module(load="{{ rsyslog_input_relp.type|default('imrelp') }}")
+    {% endif %}
+input(type="{{ rsyslog_input_relp.type|default('imrelp') }}" port="{{ rsyslog_input_relp.port|default(514) }}")
+  {% else %}
+$ModLoad {{ rsyslog_input_relp.type|default('imrelp') }}
+$InputRELPServerRun  {{ rsyslog_input_relp.port|default(514) }}
+  {% endif %}
 {% endif %}
 
 {% if rsyslog_client_tls is defined %}
+  {% if rainerscript %}
+  {% else %}
 $DefaultNetstreamDriverCAFile {{ rsyslog_client_tls.cafile|quote }}
 $DefaultNetstreamDriver gtls
 $InputTCPServerStreamDriverMode {{ rsyslog_client_tls.drivermode|default(1) }}
 $InputTCPServerStreamDriverAuthMode {{ rsyslog_client_tls.authmode|default('anon') }}
+  {% endif %}
 {% endif %}
-{% endif %}
-
-# Enable non-kernel facility klog messages
-$KLogPermitNonKernelFacility {{ rsyslog_klog_permit_non_kernel_facility }}
 
 ###########################
 #### TEMPLATES
 ###########################
 {% for template in rsyslog_templates -%}
-{% if ansible_distribution_release == "xenial" or (ansible_os_family == "RedHat" and ansible_distribution_version|int >= 7) %}
-template (name={{ template.name|quote }} type={{ template.type|default('string')|quote}} 
-    string={{ template.string|quote }}
+{% if rainerscript %}
+template (name="{{ template.name }}" type="{{ template.type|default('string')}}" 
+    string="{{ template.string }}"
 )
 {% else %}
 $template {{ template.name }},"{{ template.string }}"

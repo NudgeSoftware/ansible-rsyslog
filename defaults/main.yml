@@ -23,6 +23,10 @@ rsyslog_action:
 #   port: 514
 #   maxSessions: 500
 
+# rsyslog_input_relp:
+#   type: imrelp
+#   port: 514
+
 # rsyslog_server_tls:
 #   cafile: path/to/ca.pem
 #   certfile: path/to/cert.pem
@@ -42,7 +46,7 @@ rsyslog_modules:
     comment: provides access to the systemd journal
   - type: imklog
     comment: provides kernel logging support
-  #- type: omfwd
+  - type: omrelp
   #- type: omfile
   # - type: mmnormalize
 
@@ -52,9 +56,6 @@ rsyslog_templates:
   - name: RFC3164fmt
     type: string
     string: "<%PRI%>%TIMESTAMP% %HOSTNAME% %syslogtag%%msg%"
-  - name: wire
-    type: string
-    string: "%TIMESTAMP% %HOSTNAME% %syslogtag%%msg:::sp-if-no-1st-sp%%msg:::drop-last-lf%\\n"
   - name: usermsg
     type: string
     string: " XXXX%syslogtag%%msg%\\n"
