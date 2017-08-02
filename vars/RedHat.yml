@@ -5,6 +5,6 @@ rsyslog_packages:
 
 rsyslog_file_owner: root
 rsyslog_file_group: root
-rsyslog_file_create_mode: "0644"
+rsyslog_file_create_mode: "0640"
 rsyslog_priv_drop_to_user: root
 rsyslog_priv_drop_to_group: root
