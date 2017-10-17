@@ -12,9 +12,19 @@
   become: yes
   yum:
     name: "{{ item }}"
-    state: latest
+    state: installed
     update_cache: yes
   with_items:
     - "{{ rsyslog_packages }}"
+  tags:
+    - rsyslog
+
+- name: Install rsyslog-relp packages
+  become: yes
+  yum:
+    name: "{{ rsyslog_packages|map('regex_replace','^(rsyslog)(-\\d*.*)?$','\\1-relp\\2')|first }}"
+    state: installed
+    update_cache: no
+  when: rsyslog_packages|map('regex_replace','^(rsyslog-relp).*$','\\1')|select('equalto','rsyslog-relp')|list|length == 0
   tags:
     - rsyslog

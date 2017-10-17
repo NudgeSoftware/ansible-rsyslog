@@ -1,7 +1,5 @@
 ---
 # vars file for rsyslog
-rsyslog_packages:
-  - rsyslog
 rsyslog_service_name: rsyslog
 rsyslog_dir_create_mode: "0755"
 rsyslog_umask: "0022"

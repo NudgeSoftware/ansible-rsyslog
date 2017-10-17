@@ -63,3 +63,6 @@ rsyslog_templates:
 rsyslog_rulesets: ""
 
 # rsyslog_default_template: RFC3164fmt
+
+rsyslog_packages:
+  - rsyslog
