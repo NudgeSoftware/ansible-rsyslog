@@ -12,55 +12,66 @@
 #################
 
 {% for module in rsyslog_modules %}
-$ModLoad {{ module.type }} # {{ module.comment|default('') }}
+module(load="{{ module.type }}") # {{ module.comment|default('') }}
 {% endfor %}
-# Enable non-kernel facility klog messages
-$KLogPermitNonKernelFacility {{ rsyslog_klog_permit_non_kernel_facility }}
 
 {% if rsyslog_input_udp is defined %}
 # UDP input
-$ModLoad {{ rsyslog_input_udp.type|default('imudp') }}
-$UDPServerAddress {{ rsyslog_input_udp.address|default('*') }}
-$UDPServerRun {{ rsyslog_input_udp.port|default(514) }}
-{% endif %}
-
-{% if rsyslog_server_tls is defined %}
-# TLS certs
-$DefaultNetstreamDriver gtls
-$DefaultNetstreamDriverCAFile {{ rsyslog_server_tls.cafile|quote }}
-$DefaultNetstreamDriverCertFile {{ rsyslog_server_tls.certfile|quote }}
-$DefaultNetstreamDriverKeyFile {{ rsyslog_server_tls.keyfile|quote }}
+module(load="{{ rsyslog_input_udp.type|default('imudp') }}")
+input(type="{{ rsyslog_input_udp.type|default('imudp') }}" address="{{ rsyslog_input_udp.address|default('*') }}" port="{{ rsyslog_input_udp.port|default(514) }}")
 {% endif %}
 
 {% if rsyslog_input_tcp is defined %}
-# TCP input
-$ModLoad {{ rsyslog_input_tcp.type|default('imtcp') }}
-$InputTCPServerAddress {{ rsyslog_input_tcp.address|default('*') }}
 {%   if rsyslog_server_tls is defined %}
-$InputTCPServerStreamDriverMode {{ rsyslog_server_tls.drivermode|default(1) }}
-$InputTCPServerStreamDriverAuthMode {{ rsyslog_server_tls.authmode|default('anon') }}
+# TLS certs
+global(
+  defaultNetstreamDriver="gtls" 
+  defaultNetstreamDriverCAFile="{{ rsyslog_server_tls.cafile }}"
+  defaultNetstreamDriverCertFile="{{ rsyslog_server_tls.certfile }}"
+  defaultNetstreamDriverKeyFile="{{ rsyslog_server_tls.keyfile }}"
+)
 {%   endif %}
-$InputTCPServerRun {{ rsyslog_input_tcp.port|default(514) }}
+
+# TCP input
+{%   if rsyslog_server_tls is defined %}
+module(
+  load="{{ rsyslog_input_tcp.type|default('imtcp') }}"
+  streamDriver.name="gtls"
+  streamDriver.mode="{{ rsyslog_server_tls.drivermode|default(1) }}"
+  streamDriver.authMode="{{ rsyslog_server_tls.authmode|default('anon') }}"
+)
+{%   else %}
+module(load="{{ rsyslog_input_tcp.type|default('imtcp') }}")
+{%   endif %}
+input(type="{{ rsyslog_input_tcp.type|default('imtcp') }}" address="{{ rsyslog_input_tcp.address|default('*') }}" port="{{ rsyslog_input_tcp.port|default(514) }}")
 {% endif %}
 
 {% if rsyslog_input_relp is defined %}
 # RELP input
-$ModLoad {{ rsyslog_input_relp.type|default('imrelp') }}
-$InputRELPServerRun  {{ rsyslog_input_relp.port|default(514) }}
-{% endif %}
-
-{% if rsyslog_client_tls is defined %}
-$DefaultNetstreamDriverCAFile {{ rsyslog_client_tls.cafile|quote }}
-$DefaultNetstreamDriver gtls
-$InputTCPServerStreamDriverMode {{ rsyslog_client_tls.drivermode|default(1) }}
-$InputTCPServerStreamDriverAuthMode {{ rsyslog_client_tls.authmode|default('anon') }}
+module(load="{{ rsyslog_input_relp.type|default('imrelp') }}")
+input(
+    type="{{ rsyslog_input_relp.type|default('imrelp') }}" 
+    port="{{ rsyslog_input_relp.port|default(514) }}"
+{%   if rsyslog_server_tls is defined %}
+    tls="on"
+{%     if rsyslog_server_tls.compression|d(false) -%}    tls.compression="on"{% endif %}
+    tls.caCert="{{ rsyslog_server_tls.cafile }}"
+    tls.myCert="{{ rsyslog_server_tls.certfile }}"
+    tls.myPrivKey="{{ rsyslog_server_tls.keyfile }}"
+    tls.authMode="{{ rsyslog_server_tls.authmode|default('anon') }}"
+{%     if rsyslog_server_tls.dhbits|d(0)|int > 0 -%}    tls.dhbits={{ rsyslog_server_tls.dhbits }}{% endif %}
+{%     if rsyslog_server_tls.permittedPeer|d('') != '' -%}    tls.permittedPeer="{{ rsyslog_server_tls.permittedPeer }}"{% endif %}
+{%   endif %}
+)
 {% endif %}
 
 ###########################
 #### TEMPLATES
 ###########################
 {% for template in rsyslog_templates -%}
-$template {{ template.name }},"{{ template.string }}"
+template (name="{{ template.name }}" type="{{ template.type|default('string')}}" 
+    string="{{ template.string }}"
+)
 {%- endfor %}
 
 ###########################
