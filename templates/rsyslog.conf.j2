@@ -41,7 +41,7 @@ $UDPServerRun {{ rsyslog_input_udp.port|default(514) }}
 # TLS certs
   {% if rainerscript %}
 global(
-  defaultNetstreamDriver="ptcp" 
+  defaultNetstreamDriver="gtls" 
   defaultNetstreamDriverCAFile={{ rsyslog_server_tls.cafile|quote }}
   defaultNetstreamDriverCertFile={{ rsyslog_server_tls.certfile|quote }}
   defaultNetstreamDriverKeyFile={{ rsyslog_server_tls.keyfile|quote }}
@@ -92,7 +92,14 @@ module(
     {% else %}
 module(load="{{ rsyslog_input_relp.type|default('imrelp') }}")
     {% endif %}
-input(type="{{ rsyslog_input_relp.type|default('imrelp') }}" port="{{ rsyslog_input_relp.port|default(514) }}")
+input(
+    type="{{ rsyslog_input_relp.type|default('imrelp') }}" 
+    port="{{ rsyslog_input_relp.port|default(514) }}"
+{% if rsyslog_input_relp.tls|d(false) %}
+    tls="on"
+    {% if rsyslog_input_relp.tls_compression|d(false) -%}tls.compression="on"{% endif %}
+{% endif %}
+)
   {% else %}
 $ModLoad {{ rsyslog_input_relp.type|default('imrelp') }}
 $InputRELPServerRun  {{ rsyslog_input_relp.port|default(514) }}
