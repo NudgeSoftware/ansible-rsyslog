@@ -92,6 +92,16 @@
   tags:
     - rsyslog
 
+- name: Ensure rsyslog Unit file requires network
+  lineinfile:
+    path: "{{ rsyslog_unit }}"
+    regexp: '^Wants=network.target'
+    insertafter: '^Description='
+    line: 'Wants=network.target'    
+  when: rsyslog_network|d(false)
+  notify:
+    - restart rsyslog
+
 - name: Ensure rsyslog service is started and enabled on boot
   become: yes
   service:

@@ -5,3 +5,4 @@ rsyslog_dir_create_mode: "0755"
 rsyslog_umask: "0022"
 rsyslog_work_directory: /var/spool/rsyslog
 rsyslog_include_config: /etc/rsyslog.d/*.conf
+rsyslog_unit: /usr/lib/systemd/system/rsyslog.service

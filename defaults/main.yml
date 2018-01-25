@@ -4,6 +4,8 @@
 rsyslog_repeated_msg_reduction: "on"
 rsyslog_klog_permit_non_kernel_facility: "on"
 
+rsyslog_network: false
+
 rsyslog_action:
   file_default_template: RSYSLOG_TraditionalFileFormat
   queue_maxdiskspace: 1g
