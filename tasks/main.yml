@@ -92,6 +92,21 @@
   tags:
     - rsyslog
 
+- name: Create application specific rb files
+  become: yes
+  template:
+    src: app.rb.j2
+    dest: /etc/rsyslog.d/{{ item.name }}.rb
+    owner: root
+    group: root
+    mode: 0644
+  with_items:
+    - "{{ rsyslog_rulebase|d([]) }}"
+  notify:
+    - restart rsyslog
+  tags:
+    - rsyslog
+
 - name: Ensure rsyslog Unit file requires network
   lineinfile:
     path: "{{ rsyslog_unit }}"

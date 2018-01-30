@@ -28,3 +28,15 @@
   when: rsyslog_packages|map('regex_replace','^(rsyslog-relp).*$','\\1')|select('equalto','rsyslog-relp')|list|length == 0
   tags:
     - rsyslog
+
+- name: Install rsyslog-mmnormalize packages
+  become: yes
+  yum:
+    name: "{{ rsyslog_packages|map('regex_replace','^(rsyslog)(-\\d*.*)?$','\\1-mmnormalize\\2')|first }}"
+    state: installed
+    update_cache: no
+  when: 
+  - rsyslog_packages|map('regex_replace','^(rsyslog-mmnormalize).*$','\\1')|select('equalto','rsyslog-mmnormalize')|list|length == 0
+  - rsyslog_modules|selectattr("type","equalto","omrelp")
+  tags:
+    - rsyslog
