@@ -6,12 +6,12 @@
   tags:
     - rsyslog
 
-- include: RedHat.yml
+- include_tasks: RedHat.yml
   when: ansible_os_family == "RedHat"
   tags:
     - rsyslog
 
-- include: Debian.yml
+- include_tasks: Debian.yml
   when: ansible_os_family == "Debian"
   tags:
     - rsyslog
