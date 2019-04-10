@@ -14,8 +14,7 @@
     name: "{{ item }}"
     state: installed
     update_cache: yes
-  with_items:
-    - "{{ rsyslog_packages }}"
+  loop: "{{ rsyslog_packages }}"
   tags:
     - rsyslog
 

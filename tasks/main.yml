@@ -85,8 +85,7 @@
     owner: root
     group: root
     mode: 0644
-  with_items:
-    - "{{ rsyslog_apps }}"
+  loop: "{{ rsyslog_apps }}"
   notify:
     - restart rsyslog
   tags:
@@ -100,8 +99,7 @@
     owner: root
     group: root
     mode: 0644
-  with_items:
-    - "{{ rsyslog_rulebase|d([]) }}"
+  loop: "{{ rsyslog_rulebase|d([]) }}"
   notify:
     - restart rsyslog
   tags:
