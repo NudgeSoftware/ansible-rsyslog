@@ -11,10 +11,9 @@
 - name: Install rsyslog packages
   become: yes
   yum:
-    name: "{{ item }}"
+    name: "{{ rsyslog_packages }}"
     state: installed
     update_cache: yes
-  loop: "{{ rsyslog_packages }}"
   tags:
     - rsyslog
 
