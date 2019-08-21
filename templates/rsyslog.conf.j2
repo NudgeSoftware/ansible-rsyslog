@@ -101,6 +101,11 @@ $Umask {{ rsyslog_umask }}
 $PrivDropToUser {{ rsyslog_priv_drop_to_user }}
 $PrivDropToGroup {{ rsyslog_priv_drop_to_group }}
 
+# Tell rsyslog what to do with oversized messages
+global(oversizemsg.input.mode="truncate")
+global(internalmsg.severity="warn")
+global(maxMessageSize="16K")
+
 #
 # Where to place spool and state files
 #
