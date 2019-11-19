@@ -54,13 +54,19 @@ input(
     port="{{ rsyslog_input_relp.port|default(514) }}"
 {%   if rsyslog_server_tls is defined %}
     tls="on"
-{%     if rsyslog_server_tls.compression|d(false) -%}    tls.compression="on"{% endif %}
+{%     if rsyslog_server_tls.compression|d(false) %}
+    tls.compression="on"
+{%     endif %}
     tls.caCert="{{ rsyslog_server_tls.cafile }}"
     tls.myCert="{{ rsyslog_server_tls.certfile }}"
     tls.myPrivKey="{{ rsyslog_server_tls.keyfile }}"
     tls.authMode="{{ rsyslog_server_tls.authmode|default('anon') }}"
-{%     if rsyslog_server_tls.dhbits|d(0)|int > 0 -%}    tls.dhbits={{ rsyslog_server_tls.dhbits }}{% endif %}
-{%     if rsyslog_server_tls.permittedPeer|d('') != '' -%}    tls.permittedPeer="{{ rsyslog_server_tls.permittedPeer }}"{% endif %}
+{%     if rsyslog_server_tls.dhbits|d(0)|int > 0 %}
+    tls.dhbits={{ rsyslog_server_tls.dhbits }}
+{%     endif %}
+{%     if rsyslog_server_tls.permittedPeer|d('') != '' %}
+    tls.permittedPeer="{{ rsyslog_server_tls.permittedPeer }}"
+{%     endif %}
 {%   endif %}
 )
 {% endif %}
@@ -72,7 +78,7 @@ input(
 template (name="{{ template.name }}" type="{{ template.type|default('string')}}" 
     string="{{ template.string }}"
 )
-{%- endfor %}
+{% endfor %}
 
 ###########################
 #### RULESETS
